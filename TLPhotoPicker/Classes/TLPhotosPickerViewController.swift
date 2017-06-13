@@ -37,6 +37,7 @@ public struct TLPhotosPickerConfigure {
     public var mediaType: PHAssetMediaType? = nil
     public var numberOfColumn = 3
     public var maxSelectedAssets: Int? = nil
+    public var dismissOnMaxSelect = false
     public var selectedColor = UIColor(red: 88/255, green: 144/255, blue: 255/255, alpha: 1.0)
     public var cameraBgColor = UIColor(red: 221/255, green: 223/255, blue: 226/255, alpha: 1)
     public var cameraIcon = TLBundle.podBundleImage(named: "camera")
@@ -71,7 +72,7 @@ open class TLPhotosPickerViewController: UIViewController {
     @IBOutlet open var customNavItem: UINavigationItem!
     @IBOutlet open var doneButton: UIBarButtonItem!
     @IBOutlet open var cancelButton: UIBarButtonItem!
-
+    
     public weak var delegate: TLPhotosPickerViewControllerDelegate? = nil
     public var selectedAssets = [TLPHAsset]()
     public var configure = TLPhotosPickerConfigure()
@@ -306,17 +307,17 @@ extension TLPhotosPickerViewController {
                     guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell else { return }
                     cell.indicator?.startAnimating()
                 }
-            }, completionBlock: { [weak self] image in
-                guard let `self` = self else { return }
-                asset.state = .complete
-                if let index = self.selectedAssets.index(where: { $0.phAsset == phAsset }) {
-                    self.selectedAssets[index] = asset
-                }
-                self.cloudRequestIds.removeValue(forKey: indexPath)
-                guard self.collectionView.indexPathsForVisibleItems.contains(indexPath) else { return }
-                guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell else { return }
-                cell.imageView?.image = image
-                cell.indicator?.stopAnimating()
+                }, completionBlock: { [weak self] image in
+                    guard let `self` = self else { return }
+                    asset.state = .complete
+                    if let index = self.selectedAssets.index(where: { $0.phAsset == phAsset }) {
+                        self.selectedAssets[index] = asset
+                    }
+                    self.cloudRequestIds.removeValue(forKey: indexPath)
+                    guard self.collectionView.indexPathsForVisibleItems.contains(indexPath) else { return }
+                    guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell else { return }
+                    cell.imageView?.image = image
+                    cell.indicator?.stopAnimating()
             })
             if requestId > 0 {
                 self.cloudRequestIds[indexPath] = requestId
@@ -374,12 +375,21 @@ extension TLPhotosPickerViewController {
         }
     }
     fileprivate func maxCheck() -> Bool {
+        if let max = self.configure.maxSelectedAssets, max == self.selectedAssets.count - 1{
+            print("hello")
+        }
+        
         if let max = self.configure.maxSelectedAssets, max <= self.selectedAssets.count {
             self.delegate?.didExceedMaximumNumberOfSelection(picker: self)
             self.didExceedMaximumNumberOfSelection?(self)
             return true
         }
         return false
+    }
+    fileprivate func dismissCheck(){
+        if self.configure.dismissOnMaxSelect, let max = self.configure.maxSelectedAssets, max == self.selectedAssets.count{
+            self.dismiss(done: true)
+        }
     }
 }
 
@@ -564,7 +574,7 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
         guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell else { return }
         cell.popScaleAnim()
         if let index = self.selectedAssets.index(where: { $0.phAsset == asset.phAsset }) {
-        //deselect
+            //deselect
             self.selectedAssets.remove(at: index)
             self.selectedAssets = self.selectedAssets.enumerated().flatMap({ (offset,asset) -> TLPHAsset? in
                 var asset = asset
@@ -577,7 +587,7 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
                 stopPlay()
             }
         }else {
-        //select
+            //select
             guard !maxCheck() else { return }
             asset.selectedOrder = self.selectedAssets.count + 1
             self.selectedAssets.append(asset)
@@ -587,6 +597,7 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
             if asset.type != .photo {
                 playVideo(asset: asset, indexPath: indexPath)
             }
+            dismissCheck()
         }
     }
     
