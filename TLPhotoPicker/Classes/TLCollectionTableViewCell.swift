@@ -12,4 +12,9 @@ class TLCollectionTableViewCell: UITableViewCell {
     @IBOutlet var thumbImageView: UIImageView!
     @IBOutlet var titleLabel: UILabel!
     @IBOutlet var subTitleLabel: UILabel!
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        self.separatorInset = UIEdgeInsetsMake(0, 69, 0, 0)
+    }
 }
