@@ -9,7 +9,6 @@
 import UIKit
 import Photos
 import PhotosUI
-import SVProgressHUD
 
 public protocol TLPhotosPickerViewControllerDelegate: class {
     func dismissPhotoPicker(withPHAssets: [PHAsset])
@@ -17,6 +16,8 @@ public protocol TLPhotosPickerViewControllerDelegate: class {
     func dismissComplete()
     func photoPickerDidCancel()
     func didExceedMaximumNumberOfSelection(picker: TLPhotosPickerViewController)
+    func showLoader()
+    func hideLoader()
 }
 extension TLPhotosPickerViewControllerDelegate {
     public func dismissPhotoPicker(withPHAssets: [PHAsset]) { }
@@ -319,9 +320,8 @@ extension TLPhotosPickerViewController {
                     guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell else { return }
                     cell.imageView?.image = image
                     cell.indicator?.stopAnimating()
+                    self.delegate?.hideLoader()
                     self.dismissCheck()
-                    
-                    // test
             })
             if requestId > 0 {
                 self.cloudRequestIds[indexPath] = requestId
@@ -596,6 +596,7 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
             asset.selectedOrder = self.selectedAssets.count + 1
             self.selectedAssets.append(asset)
             requestCloudDownload(asset: asset, indexPath: indexPath)
+            self.delegate?.showLoader()
             cell.selectedAsset = true
             cell.orderLabel?.text = "\(asset.selectedOrder)"
             if asset.type != .photo {
